@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f2e9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="Смотрите любимые диафильмы в удобном просмотрщике: рейтинг, избранное, полный экран и продолжение с последнего кадра.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css?v=20261025-3">
+  <link rel="stylesheet" href="viewer.css?v=20261025-3">
+  <title>Луч — домашние диафильмы</title>
+</head>
+<body>
+  <svg class="symbols" aria-hidden="true"><defs>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.3-5.7-3-5.7 3 1.1-6.3L2.8 9.7l6.4-.9Z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m7 22 5-7 5 7Z"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6M15 3h6v6M3 15v6h6M21 15v6h-6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-1 .4-1 1-1 2M12 16.5v.5"/></symbol>
+  </defs></svg>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#catalog" aria-label="Луч, главная"><span class="brand-mark">л<span>у</span>ч<i></i></span><span class="brand-caption">ДОМАШНИЕ ДИАФИЛЬМЫ</span></a>
+      <nav aria-label="Библиотека">
+        <button data-tab="catalog" class="nav-item active"><svg><use href="#i-grid"/></svg><span>Все диафильмы</span><span class="nav-count" id="nav-count"></span></button>
+        <button data-tab="favorites" class="nav-item"><svg><use href="#i-star"/></svg><span>Избранное</span><span class="nav-count" id="favorite-count"></span></button>
+        <button data-tab="local" class="nav-item"><svg><use href="#i-film"/></svg><span>Моя коллекция</span></button>
+      </nav>
+      <div class="sidebar-note"><span class="little-sun">✳</span><p>Большие истории.<br>Маленький луч света.</p></div>
+      <button class="nav-item help-trigger"><svg><use href="#i-help"/></svg><span>Как это работает</span></button>
+      <span class="sidebar-foot">ДЛЯ ТИХИХ СЕМЕЙНЫХ ВЕЧЕРОВ</span>
+    </aside>
+    <main id="main">
+      <header class="topbar"><span class="eyebrow">ВАШ МАЛЕНЬКИЙ КИНОТЕАТР</span><div class="top-actions"><button class="text-button airplay-trigger"><svg><use href="#i-screen"/></svg><span>На телевизор</span></button><button class="button import-trigger" aria-label="Добавить диафильм"><svg><use href="#i-plus"/></svg><span>Добавить диафильм</span></button></div></header>
+      <section class="hero" id="hero">
+        <div class="hero-copy"><span class="pill"><i></i> СВЕТ ПОГАС. ИСТОРИЯ НАЧИНАЕТСЯ.</span><h1>Сказки, которые<br>светятся изнутри.</h1><p>Те самые диафильмы — для новых вечеров вместе.<br class="desktop-break"> Выберите историю и устройтесь поудобнее.</p><button class="button dark" id="demo-start"><span class="play-symbol">▶</span> Смотреть «Три поросёнка» <span class="button-tail">↗</span></button><span class="hero-hint">Истории для просмотра в вашем темпе</span></div>
+        <div class="hero-art" aria-hidden="true">
+          <svg viewBox="0 0 560 450"><defs><linearGradient id="beam"><stop stop-color="#edb34b" stop-opacity=".5"/><stop offset="1" stop-color="#edb34b" stop-opacity=".02"/></linearGradient><radialGradient id="glow"><stop stop-color="#f6d99b"/><stop offset="1" stop-color="#e8cd98" stop-opacity="0"/></radialGradient><pattern id="grain" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="3" r=".5" fill="#5a4e36" opacity=".15"/></pattern></defs>
+          <circle cx="333" cy="210" r="200" fill="url(#glow)"/><path d="M219 231 540 69v321L219 262Z" fill="url(#beam)"/>
+          <g transform="rotate(-5 165 240)"><path d="m103 300-12 73h12l22-73m67 0 24 73h12l-13-73" fill="#34392f"/><rect x="74" y="170" width="157" height="146" rx="24" fill="#3a443b"/><path d="M74 214h157v72H74Z" fill="#4d5a4d"/><rect x="208" y="216" width="43" height="60" rx="8" fill="#29372f"/><rect x="240" y="224" width="18" height="45" rx="5" fill="#b89050"/><ellipse cx="257" cy="246" rx="5" ry="20" fill="#f4d7a0"/>
+          <circle cx="119" cy="144" r="58" fill="#28392e"/><circle cx="119" cy="144" r="46" fill="#87917a"/><g fill="#344838"><circle cx="119" cy="114" r="13"/><circle cx="148" cy="151" r="13"/><circle cx="101" cy="168" r="13"/><circle cx="119" cy="144" r="6"/></g>
+          <circle cx="204" cy="139" r="44" fill="#293b2f"/><circle cx="204" cy="139" r="34" fill="#a0a88e"/><g fill="#344838"><circle cx="204" cy="118" r="9"/><circle cx="224" cy="145" r="9"/><circle cx="191" cy="157" r="9"/></g>
+          <path d="M97 233h75m-75 8h75m-75 8h75m-75 8h75" stroke="#27392e" stroke-width="3"/><rect x="96" y="282" width="46" height="14" rx="3" fill="#d9c9a3"/><text x="119" y="292" text-anchor="middle" font-size="8" fill="#374335" font-family="sans-serif" letter-spacing="3">ЛУЧ</text><circle cx="194" cy="289" r="10" fill="#c7a05e"/></g>
+          <path d="m407 117 6 17 18 1-14 11 4 18-14-10-15 10 5-18-14-11 18-1Z" fill="#c18a3e" opacity=".65"/><path d="m460 256 3 10 11 1-9 6 3 10-8-6-9 6 3-10-9-6 11-1Z" fill="#c18a3e" opacity=".7"/><circle cx="370" cy="299" r="2.5" fill="#b4823a"/><circle cx="467" cy="205" r="2" fill="#b4823a"/><circle cx="328" cy="149" r="2" fill="#b4823a"/>
+          <ellipse cx="163" cy="391" rx="117" ry="9" fill="#394335" opacity=".09"/><rect width="560" height="450" fill="url(#grain)"/>
+        </svg><span class="art-caption">ВСПОМНИТЬ. ПЕРЕЧИТАТЬ. ПОБЫТЬ ВМЕСТЕ.</span>
+        </div>
+      </section>
+      <section id="continue-section" class="continue-section" hidden><button id="continue-film"><span class="continue-icon">↗</span><span><small>ПРОДОЛЖИТЬ ВЕЧЕР</small><strong id="continue-title"></strong></span><span id="continue-frame"></span><svg><use href="#i-arrow"/></svg></button></section>
+      <section class="library" aria-labelledby="library-title"><div class="section-heading"><div><span class="eyebrow" id="library-kicker">ИСТОРИИ НА ПОЛКЕ</span><h2 id="library-title">Все диафильмы <span id="result-count"></span></h2></div><label class="search"><svg><use href="#i-search"/></svg><input type="search" id="search" placeholder="Найти свою историю" autocomplete="off" aria-label="Поиск по названию"><kbd>/</kbd></label></div>
+      <div class="library-toolbar"><div class="filters" aria-label="Источник"><button class="filter active" data-filter="all">Все истории</button><button class="filter" data-filter="playable">Мои кадры</button><button class="filter" data-filter="source">Диафильмы</button></div><label class="sort-control"><span class="sr-only">Сортировка</span><select id="sort" aria-label="Сортировка диафильмов"><option value="popular">По популярности</option><option value="title">По алфавиту</option></select></label></div>
+      <div class="source-note" id="source-note"><span>↗</span><p>Выберите диафильм — кадры откроются здесь. Рейтинг · 25 октября 2026.</p><button class="help-trigger" aria-label="Как смотреть диафильмы"><svg><use href="#i-help"/></svg></button></div>
+      <div class="film-grid" id="film-grid" aria-live="polite"></div><p class="loading" id="loading">Собираем истории на полке…</p><button id="show-more" class="button secondary" hidden>Ещё истории <span>↓</span></button>
+      </section>
+      <footer><span class="footer-logo">луч<span>✳</span></span><span>Пусть у каждой истории будет свой вечер.</span><button class="help-trigger text-button">Как смотреть диафильмы</button></footer>
+    </main>
+  </div>
+  <nav class="mobile-nav" aria-label="Библиотека"><button data-tab="catalog" class="active"><svg><use href="#i-grid"/></svg><span>Каталог</span></button><button data-tab="favorites"><svg><use href="#i-star"/></svg><span>Избранное</span></button><button data-tab="local"><svg><use href="#i-film"/></svg><span>Мои фильмы</span></button><button class="help-trigger"><svg><use href="#i-help"/></svg><span>Помощь</span></button></nav>
+  <dialog id="info-dialog" class="modal"><button class="modal-close" data-close aria-label="Закрыть"><svg><use href="#i-close"/></svg></button><div id="info-content"></div></dialog>
+  <dialog id="import-dialog" class="modal"><button class="modal-close" data-close aria-label="Закрыть"><svg><use href="#i-close"/></svg></button><span class="eyebrow">ВАША ЛИЧНАЯ КОЛЛЕКЦИЯ</span><h2>Добавим историю?</h2><p>Выберите изображения кадров. Они сохранятся только в этом браузере на вашем устройстве.</p><form id="import-form"><label class="field-label" for="film-title">Название диафильма</label><input id="film-title" required maxlength="120" placeholder="Например, наша любимая сказка"><label class="upload-area" for="film-files"><svg><use href="#i-plus"/></svg><strong>Выбрать кадры</strong><span>JPG, PNG или WebP · до 150 кадров</span><input type="file" id="film-files" accept="image/jpeg,image/png,image/webp" multiple></label><p id="import-summary" class="small-note">Кадры будут идти по имени файла: 1, 2, 3…</p><div id="import-order" class="import-order"></div><p class="small-note">Добавляйте личные файлы, которыми вы вправе пользоваться. Файлы не отправляются на сервер. Избранное и коллекция не синхронизируются между устройствами.</p><p id="import-error" class="error" role="alert"></p><button id="import-submit" class="button dark" type="submit">Добавить и смотреть <span>↗</span></button></form></dialog>
+  <dialog id="viewer" class="viewer" aria-label="Просмотр диафильма">
+    <header class="viewer-top viewer-chrome">
+      <button id="close-viewer" class="viewer-button" aria-label="Закрыть просмотр"><svg><use href="#i-close"/></svg></button>
+      <span id="viewer-title"></span>
+      <button class="viewer-button airplay-trigger" aria-label="Как вывести на Apple TV"><svg><use href="#i-screen"/></svg></button>
+      <button id="fullscreen" class="viewer-button" aria-label="На весь экран"><svg><use href="#i-expand"/></svg></button>
+    </header>
+    <div class="viewer-stage" id="viewer-stage">
+      <img id="frame-image" alt="" referrerpolicy="no-referrer" draggable="false">
+      <div id="frame-loading" class="frame-loading" hidden>Открываем кадр…</div>
+      <p id="frame-error" class="frame-error" hidden>Не удалось открыть кадр.</p>
+      <button id="retry-frame" class="button secondary" hidden>Повторить загрузку</button>
+    </div>
+    <div class="viewer-bottom viewer-chrome" aria-label="Управление просмотром">
+      <button id="prev-frame" class="viewer-button" aria-label="Предыдущий кадр">‹</button>
+      <span id="frame-counter" aria-live="polite"></span>
+      <input type="range" id="frame-range" min="1" value="1" aria-label="Номер кадра">
+      <button id="next-frame" class="viewer-button" aria-label="Следующий кадр">›</button>
+      <button id="restart-film" class="viewer-button" aria-label="Начать сначала">↺</button>
+      <div id="end-message" hidden>Конец истории. Хорошего вечера! ✳</div>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="app.js?v=20261025-3"></script>
+</body>
+</html>
