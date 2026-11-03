@@ -3,7 +3,7 @@ const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
-const normalize = s => s.toLocaleLowerCase('ru').replaceAll('ё','е').normalize('NFC');
+const normalize = s => s.normalize('NFC').toLocaleLowerCase('ru').replaceAll('ё','е').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const naturalSort = (a,b) => a.name.localeCompare(b.name,'ru',{numeric:true,sensitivity:'base'});
 const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const write = (key,value) => { try { localStorage.setItem(key,JSON.stringify(value)); return true; } catch { toast('Браузер не разрешил сохранить изменения. Проверьте настройки хранения.'); return false; } };
