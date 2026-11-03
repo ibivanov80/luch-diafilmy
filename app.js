@@ -15,11 +15,14 @@ let progress = read('luch-progress-v1',{});
 if(!progress || typeof progress!=='object' || Array.isArray(progress)) progress={};
 let sourceFilms=[], localFilms=[], tab='catalog', filter='all', limit=24, db;
 let activeFilm=null, activeIndex=0, frameUrls=[], renderGeneration=0, lastFocus=null, touchStart=null, wakeLock=null;
+let suppressStageClickUntil=0;
 let selectedFiles=[];
 let sortMode=read('luch-sort-v1','popular');
 if(!['popular','title'].includes(sortMode))sortMode='popular';
 let sourceRequest=null;
 const sourceFrameCache=new Map();
+const localCoverCache=new Map();
+const localCoverRequests=new Map();
 const demo={id:'luch-demo-1',title:'Путешествие луча',kind:'demo',count:6};
 const palettes=[['#dedac7','#626749'],['#d8dfd1','#536a56'],['#e8d3c0','#966449'],['#d6dde0','#5b6e76'],['#e4debd','#8d7c3c'],['#dcd4dc','#79637c'],['#d5d8c2','#69734c'],['#e4cfc6','#936c5e']];
 const symbols=['☼','✳','❧','✦','☽','✧'];
@@ -29,6 +32,27 @@ function findFilm(id){return allFilms().find(f=>f.id===id);}
 function isLocalFilm(f){return f.kind!=='source';}
 function frameCount(f){return f.count||progress[f.id]?.count||1;}
 function getProgress(f){const p=progress[f.id];return p && Number.isInteger(p.index) ? Math.max(0,Math.min(frameCount(f)-1,p.index)) : 0;}
+function coverUrl(f){return f.kind==='demo'?'demo/frame-2.svg':f.kind==='local'?localCoverCache.get(f.id):f.cover;}
+function coverImage(url){return `<img class="cover-image" src="${esc(url)}" alt="" loading="lazy" decoding="async" draggable="false">`;}
+async function loadLocalCover(f){
+  if(localCoverCache.has(f.id))return localCoverCache.get(f.id);
+  if(!localCoverRequests.has(f.id)){
+    const request=dbRequest('frames',`${f.id}:0`).then(blob=>{
+      if(!(blob instanceof Blob)||!localFilms.some(film=>film.id===f.id))return;
+      const url=URL.createObjectURL(blob);localCoverCache.set(f.id,url);return url;
+    }).catch(()=>undefined).finally(()=>localCoverRequests.delete(f.id));
+    localCoverRequests.set(f.id,request);
+  }
+  return localCoverRequests.get(f.id);
+}
+function showLocalCovers(films){
+  films.filter(f=>f.kind==='local'&&!coverUrl(f)).forEach(async f=>{
+    const button=$$('[data-open]',$('#film-grid')).find(b=>b.dataset.open===f.id&&b.classList.contains('cover'));
+    const url=await loadLocalCover(f);
+    if(!url||!button?.isConnected)return;
+    button.insertAdjacentHTML('afterbegin',coverImage(url));button.classList.add('has-image');
+  });
+}
 
 async function openDatabase(){
   return new Promise((resolve,reject)=>{
@@ -72,21 +96,22 @@ function renderGrid(){
     $('#film-grid').innerHTML=`<div class="empty"><span class="empty-icon">✳</span><h3>${title}</h3><p>${text}</p>${query?'<button class="button secondary" id="clear-search">Сбросить поиск</button>':tab==='favorites'?'<button class="button secondary" data-tab="catalog">В каталог</button>':'<button class="button secondary import-trigger">Добавить диафильм</button>'}</div>`;return;
   }
   $('#film-grid').innerHTML=visible.map(f=>{
-    const {colors:[bg,ink],symbol}=colorFor(f.id), local=isLocalFilm(f), p=progress[f.id];
+    const {colors:[bg,ink],symbol}=colorFor(f.id), local=isLocalFilm(f), p=progress[f.id], cover=coverUrl(f);
     const rating=Number.isFinite(f.rating)?`<span class="rating" title="Рейтинг на 25 октября 2026 года" aria-label="Рейтинг: ${f.rating}">↑ ${f.rating.toLocaleString('ru-RU')}</span>`:'';
     const meta=f.kind==='source'?'Смотреть диафильм':f.kind==='demo'?'Авторский пример · 6 кадров':`Мой диафильм · ${f.count} кадров`;
     return `<article class="film-card" style="--cover:${bg};--cover-ink:${ink}" data-film="${esc(f.id)}">
-      <button class="cover ${local?'local-cover':''}" data-open="${esc(f.id)}" aria-label="Смотреть: ${esc(f.title)}"><span class="cover-number">${local?'ЛУЧ / '+(f.kind==='demo'?'АВТОРСКИЙ ПРИМЕР':'ЛИЧНАЯ КОЛЛЕКЦИЯ'):'БИБЛИОТЕКА / ЛУЧ'}</span><span class="cover-shape" aria-hidden="true">${local?'✳':symbol}</span><span class="cover-title">${esc(f.title)}</span><span class="cover-play" aria-hidden="true">▶</span></button>
+      <button class="cover ${local?'local-cover':''} ${cover?'has-image':''}" data-open="${esc(f.id)}" aria-label="Смотреть: ${esc(f.title)}">${cover?coverImage(cover):''}<span class="cover-number">${local?'ЛУЧ / '+(f.kind==='demo'?'АВТОРСКИЙ ПРИМЕР':'ЛИЧНАЯ КОЛЛЕКЦИЯ'):'БИБЛИОТЕКА / ЛУЧ'}</span><span class="cover-shape" aria-hidden="true">${local?'✳':symbol}</span><span class="cover-title">${esc(f.title)}</span><span class="cover-play" aria-hidden="true">▶</span></button>
       <button class="favorite" data-favorite="${esc(f.id)}" aria-pressed="${favorites.has(f.id)}" aria-label="${favorites.has(f.id)?'Убрать из избранного':'В избранное'}: ${esc(f.title)}">${icon('star')}</button>
       <h3><button data-open="${esc(f.id)}">${esc(f.title)}</button></h3>
       <div class="card-meta"><span>${meta}</span>${rating||''}${f.kind==='local'?`<button class="delete-film" data-delete="${esc(f.id)}" aria-label="Удалить: ${esc(f.title)}">Удалить</button>`:''}</div>
       ${p?`<div class="progress-track" aria-label="Кадр ${getProgress(f)+1} из ${frameCount(f)}"><i style="width:${(getProgress(f)+1)/frameCount(f)*100}%"></i></div>`:''}</article>`;
   }).join('');
+  showLocalCovers(visible);
 }
 function setTab(next){tab=next;limit=24;$('#search').value='';history.replaceState(null,'','#'+next);renderGrid();}
 function showInfo(html){$('#info-content').innerHTML=html;if(!$('#info-dialog').open)$('#info-dialog').showModal();}
-function help(){showInfo(`<span class="eyebrow">МАЛЕНЬКАЯ ИНСТРУКЦИЯ</span><h2>Ваш домашний «Луч»</h2><p>Выберите историю в каталоге — кадры откроются прямо здесь. Для просмотра нужен интернет; изображения загружаются по мере перелистывания.</p><p><strong>Рейтинг.</strong> По умолчанию первыми показываются самые популярные диафильмы. Числовой рейтинг получен 25 октября 2026 года и не обновляется в реальном времени. Можно переключиться на алфавит.</p><p><strong>На компьютере.</strong> Листайте кнопками под кадром или стрелками клавиатуры. Пробел открывает следующий кадр, Home — первый, End — последний. Ползунок позволяет выбрать нужное место.</p><p><strong>На телефоне.</strong> Листайте свайпом или кнопками. Коснитесь центра изображения, чтобы скрыть управление и увеличить кадр. Ещё одно касание вернёт кнопки.</p><p>Панели управления расположены отдельно от изображения: нижние строки диафильма остаются видны и в вертикальной, и в горизонтальной ориентации.</p><div class="details-row"><strong>Продолжить.</strong> Последний кадр и избранное сохраняются в этом браузере на этом устройстве. Синхронизации между устройствами нет.</div><h2>Иконка на iPhone</h2><ol class="steps"><li>Откройте «Луч» в Safari.</li><li>Нажмите «Поделиться» → «На экран “Домой”».</li><li>Если доступно, включите «Открывать как веб-приложение» и нажмите «Добавить».</li></ol><p>Поверните телефон горизонтально для крупного изображения. На некоторых версиях iOS данные Safari и веб-приложения хранятся отдельно.</p>`);}
-function airplay(){showInfo(`<span class="eyebrow">ВЕЧЕР НА БОЛЬШОМ ЭКРАНЕ</span><h2>Смотрим на Apple TV</h2><p>Для диафильмов используйте системный «Повтор экрана» iPhone. Эта кнопка открывает инструкцию; подключение выбирается в Пункте управления.</p><ol class="steps"><li>Подключите iPhone и Apple TV к одной сети Wi-Fi.</li><li>Откройте диафильм и поверните iPhone горизонтально. При необходимости выключите блокировку ориентации.</li><li>Смахните вниз от правого верхнего угла iPhone, нажмите <strong>«Повтор экрана»</strong> и выберите Apple TV.</li><li>Вернитесь к диафильму. Коснитесь центра кадра, чтобы скрыть кнопки; листайте свайпом.</li></ol><p>Передаётся весь экран телефона. Его пропорции могут оставлять поля на телевизоре. Для выхода откройте «Повтор экрана» → «Остановить повтор».</p><a class="text-link" href="https://support.apple.com/ru-ru/102661" target="_blank" rel="noopener noreferrer">Инструкция Apple ↗</a>`);}
+function help(){showInfo(`<span class="eyebrow">МАЛЕНЬКАЯ ИНСТРУКЦИЯ</span><h2>Ваш домашний «Луч»</h2><p>Выберите историю в каталоге — кадры откроются прямо здесь. Для просмотра нужен интернет; изображения загружаются по мере перелистывания.</p><p><strong>Рейтинг.</strong> По умолчанию первыми показываются самые популярные диафильмы. Числовой рейтинг получен 25 октября 2026 года и не обновляется в реальном времени. Можно переключиться на алфавит.</p><p><strong>На компьютере.</strong> Листайте кнопками под кадром или стрелками клавиатуры. Пробел открывает следующий кадр, Home — первый, End — последний. Ползунок позволяет выбрать нужное место.</p><p><strong>На телефоне и iPad.</strong> Коснитесь правого края или угла экрана — откроется следующий кадр. Левый край возвращает предыдущий. Свайпы и кнопки тоже работают. Касание по центру скрывает управление и увеличивает кадр; ещё одно — выходит из полноэкранного режима и возвращает кнопки. Кнопка «На весь экран» также скрывает управление.</p><p>Панели управления расположены отдельно от изображения: нижние строки диафильма остаются видны и в вертикальной, и в горизонтальной ориентации.</p><div class="details-row"><strong>Продолжить.</strong> Последний кадр и избранное сохраняются в этом браузере на этом устройстве. Синхронизации между устройствами нет.</div><h2>Иконка на iPhone</h2><ol class="steps"><li>Откройте «Луч» в Safari.</li><li>Нажмите «Поделиться» → «На экран “Домой”».</li><li>Если доступно, включите «Открывать как веб-приложение» и нажмите «Добавить».</li></ol><p>Поверните телефон горизонтально для крупного изображения. На некоторых версиях iOS данные Safari и веб-приложения хранятся отдельно.</p>`);}
+function airplay(){showInfo(`<span class="eyebrow">ВЕЧЕР НА БОЛЬШОМ ЭКРАНЕ</span><h2>Смотрим на Apple TV</h2><p>Для диафильмов используйте системный «Повтор экрана» iPhone. Эта кнопка открывает инструкцию; подключение выбирается в Пункте управления.</p><ol class="steps"><li>Подключите iPhone и Apple TV к одной сети Wi-Fi.</li><li>Откройте диафильм и поверните iPhone горизонтально. При необходимости выключите блокировку ориентации.</li><li>Смахните вниз от правого верхнего угла iPhone, нажмите <strong>«Повтор экрана»</strong> и выберите Apple TV.</li><li>Вернитесь к диафильму. Коснитесь центра кадра, чтобы скрыть кнопки. Для следующего кадра тапайте справа, для предыдущего — слева; свайпы тоже работают. Касание по центру вернёт управление и выйдет из полноэкранного режима.</li></ol><p>Передаётся весь экран телефона. Его пропорции могут оставлять поля на телевизоре. Для выхода откройте «Повтор экрана» → «Остановить повтор».</p><a class="text-link" href="https://support.apple.com/ru-ru/102661" target="_blank" rel="noopener noreferrer">Инструкция Apple ↗</a>`);}
 
 function toggleFavorite(id){if(favorites.has(id))favorites.delete(id);else favorites.add(id);write('luch-favorites-v1',[...favorites]);renderGrid();toast(favorites.has(id)?'История в избранном':'История убрана из избранного');}
 
@@ -99,8 +124,9 @@ async function openFilm(id){
   if($('#info-dialog').open)$('#info-dialog').close();
   sourceRequest?.abort();
   const request=new AbortController();sourceRequest=request;
-  releaseFrames();activeFilm=f;activeIndex=getProgress(f);renderGeneration++;
+  releaseFrames();activeFilm=f;activeIndex=getProgress(f);renderGeneration++;touchStart=null;suppressStageClickUntil=0;
   $('#retry-frame').hidden=true;$('#viewer-title').textContent=f.title;$('#frame-range').max=frameCount(f);$('#frame-range').disabled=true;$('#frame-counter').textContent='… / …';$('#prev-frame').disabled=true;$('#next-frame').disabled=true;$('#end-message').hidden=true;$('#frame-error').hidden=true;$('#frame-image').removeAttribute('src');$('#frame-image').alt='';$('#frame-loading').textContent=f.kind==='source'?'Загружаем диафильм…':'Открываем диафильм…';$('#frame-loading').hidden=false;$('#viewer').classList.remove('hide-chrome');if(!$('#viewer').open)$('#viewer').showModal();document.body.classList.add('viewing');
+  setImmersive(false);$('#tap-prev').disabled=true;$('#tap-next').disabled=true;
   const timeout=setTimeout(()=>request.abort(new DOMException('Timeout','TimeoutError')),20000);
   try{
     if(f.kind==='source'){
@@ -125,6 +151,7 @@ async function showFrame(index){
   img.alt=`${activeFilm.title}. Кадр ${activeIndex+1} из ${activeFilm.count}`;img.src=frameUrls[activeIndex];
   $('#frame-counter').textContent=`${String(activeIndex+1).padStart(2,'0')} / ${String(activeFilm.count).padStart(2,'0')}`;
   $('#frame-range').value=activeIndex+1;$('#prev-frame').disabled=activeIndex===0;$('#next-frame').disabled=activeIndex===activeFilm.count-1;$('#end-message').hidden=activeIndex!==activeFilm.count-1;
+  $('#tap-prev').disabled=activeIndex===0;$('#tap-next').disabled=activeIndex===activeFilm.count-1;
   savePosition();
   try{await img.decode();}catch{if(generation===renderGeneration){$('#frame-error').textContent='Кадр не загрузился. Проверьте интернет и попробуйте ещё раз.';$('#frame-error').hidden=false;$('#retry-frame').hidden=false;}}
   if(generation===renderGeneration)$('#frame-loading').hidden=true;
@@ -133,14 +160,41 @@ async function showFrame(index){
 async function closeViewer(){
   if(!activeFilm)return;savePosition();renderGeneration++;activeFilm=null;
   sourceRequest?.abort();sourceRequest=null;$('#retry-frame').hidden=true;
-  if(document.fullscreenElement){try{await document.exitFullscreen();}catch{}}
+  await leaveFullscreen();
   $('#viewer').close();$('#frame-image').removeAttribute('src');document.body.classList.remove('viewing');
   try{await wakeLock?.release();}catch{}wakeLock=null;releaseFrames();renderGrid();if(lastFocus?.isConnected)lastFocus.focus();
 }
+function fullscreenElement(){return document.fullscreenElement||document.webkitFullscreenElement;}
+function setImmersive(enabled){
+  $('#viewer').classList.toggle('hide-chrome',enabled);
+  $('#fullscreen').setAttribute('aria-pressed',String(enabled));
+  $('#fullscreen').setAttribute('aria-label',enabled?'Выйти из полноэкранного режима':'На весь экран');
+  $('#tap-center').setAttribute('aria-label',enabled?'Выйти из полноэкранного режима':'Скрыть управление и увеличить кадр');
+}
+async function leaveFullscreen(){
+  if(fullscreenElement()){
+    const exit=document.exitFullscreen||document.webkitExitFullscreen;
+    try{await exit?.call(document);}catch{}
+  }
+  setImmersive(false);
+}
 async function fullscreen(){
-  if(document.fullscreenElement){await document.exitFullscreen();return;}
-  if($('#viewer').requestFullscreen){try{await $('#viewer').requestFullscreen();return;}catch{}}
-  showInfo('<span class="eyebrow">НА ВЕСЬ ЭКРАН</span><h2>Больше места для истории</h2><p>В этом браузере полноэкранный режим для изображений недоступен. На iPhone добавьте «Луч» на экран «Домой» и открывайте через иконку. Поверните телефон горизонтально и коснитесь центра кадра, чтобы скрыть кнопки.</p><button class="button dark" data-close>Вернуться к просмотру</button>');
+  if(fullscreenElement()||$('#viewer').classList.contains('hide-chrome')){await leaveFullscreen();return;}
+  // Hiding the controls also works on iPhone, where native fullscreen may be unavailable.
+  setImmersive(true);
+  const viewer=$('#viewer'), request=viewer.requestFullscreen||viewer.webkitRequestFullscreen;
+  if(request){try{await request.call(viewer);}catch{}}
+}
+function tapStage(event){
+  if(event.target.closest('#retry-frame'))return;
+  if(performance.now()<suppressStageClickUntil){event.preventDefault();return;}
+  const stage=$('#viewer-stage'), zone=event.target.closest('[data-stage-action]');
+  const x=(event.clientX-stage.getBoundingClientRect().left)/stage.clientWidth;
+  const action=zone?.dataset.stageAction||(x<.25?'prev':x>.75?'next':'center');
+  if(action==='prev'){if(activeIndex>0)showFrame(activeIndex-1);}
+  else if(action==='next'){if(activeFilm&&activeIndex<activeFilm.count-1)showFrame(activeIndex+1);}
+  else if(fullscreenElement()||$('#viewer').classList.contains('hide-chrome'))leaveFullscreen();
+  else setImmersive(true);
 }
 function openImport(){
   if(!db){showInfo('<h2>Хранилище недоступно</h2><p>Откройте «Луч» в обычном режиме Safari и разрешите сайту хранить данные. Каталог и авторский пример доступны без импорта.</p>');return;}
@@ -168,7 +222,7 @@ async function importFilm(event){
   finally{submit.disabled=false;submit.innerHTML='Добавить и смотреть <span>↗</span>';}
 }
 function askDelete(id){const f=findFilm(id);if(!f||f.kind!=='local')return;showInfo(`<span class="eyebrow">МОЯ КОЛЛЕКЦИЯ</span><h2>Удалить диафильм?</h2><p>«${esc(f.title)}» и его кадры будут удалены из коллекции этого браузера. Исходные файлы на устройстве сохранятся.</p><button class="button dark" data-confirm-delete="${esc(id)}">Удалить из «Луча»</button><button class="button secondary" data-close>Оставить</button>`);}
-async function deleteFilm(id){const f=findFilm(id);if(!f||f.kind!=='local')return;try{await new Promise((resolve,reject)=>{const tx=db.transaction(['films','frames'],'readwrite');tx.objectStore('films').delete(id);for(let i=0;i<f.count;i++)tx.objectStore('frames').delete(`${id}:${i}`);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});favorites.delete(id);delete progress[id];write('luch-favorites-v1',[...favorites]);write('luch-progress-v1',progress);await refreshLocal();$('#info-dialog').close();renderGrid();toast('Диафильм удалён');}catch{toast('Не удалось удалить диафильм. Попробуйте ещё раз.');}}
+async function deleteFilm(id){const f=findFilm(id);if(!f||f.kind!=='local')return;try{await new Promise((resolve,reject)=>{const tx=db.transaction(['films','frames'],'readwrite');tx.objectStore('films').delete(id);for(let i=0;i<f.count;i++)tx.objectStore('frames').delete(`${id}:${i}`);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});favorites.delete(id);delete progress[id];if(localCoverCache.has(id)){URL.revokeObjectURL(localCoverCache.get(id));localCoverCache.delete(id);}write('luch-favorites-v1',[...favorites]);write('luch-progress-v1',progress);await refreshLocal();$('#info-dialog').close();renderGrid();toast('Диафильм удалён');}catch{toast('Не удалось удалить диафильм. Попробуйте ещё раз.');}}
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('button,a');if(!b)return;
@@ -199,21 +253,37 @@ $('#next-frame').addEventListener('click',()=>showFrame(activeIndex+1));
 $('#frame-range').addEventListener('input',e=>showFrame(+e.target.value-1));
 $('#restart-film').addEventListener('click',()=>showFrame(0));
 $('#fullscreen').addEventListener('click',fullscreen);
-$('#viewer-stage').addEventListener('click',e=>{if(e.target.closest('button'))return;$('#viewer').classList.toggle('hide-chrome');});
-$('#viewer-stage').addEventListener('touchstart',e=>{if(e.touches.length===1&&!e.target.closest('button'))touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};else touchStart=null;},{passive:true});
-$('#viewer-stage').addEventListener('touchend',e=>{if(!touchStart||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;touchStart=null;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5){showFrame(activeIndex+(dx<0?1:-1));}},{passive:true});
+$('#viewer-stage').addEventListener('click',tapStage);
+$('#viewer-stage').addEventListener('touchstart',e=>{
+  if(e.touches.length===1&&!e.target.closest('#retry-frame'))touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  else{touchStart=null;suppressStageClickUntil=performance.now()+500;}
+},{passive:true});
+$('#viewer-stage').addEventListener('touchmove',e=>{
+  if(e.touches.length!==1){touchStart=null;suppressStageClickUntil=performance.now()+500;return;}
+  if(touchStart&&(Math.abs(e.touches[0].clientX-touchStart.x)>12||Math.abs(e.touches[0].clientY-touchStart.y)>12))suppressStageClickUntil=performance.now()+500;
+},{passive:true});
+$('#viewer-stage').addEventListener('touchend',e=>{
+  if(!touchStart){suppressStageClickUntil=performance.now()+500;return;}
+  if(!e.changedTouches.length)return;
+  const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;touchStart=null;
+  if(Math.abs(dx)>12||Math.abs(dy)>12)suppressStageClickUntil=performance.now()+500;
+  if(!e.touches.length&&Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5)showFrame(activeIndex+(dx<0?1:-1));
+},{passive:true});
+$('#viewer-stage').addEventListener('touchcancel',()=>{touchStart=null;suppressStageClickUntil=performance.now()+500;},{passive:true});
+for(const event of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(event,()=>setImmersive(Boolean(fullscreenElement())));
+$('#film-grid').addEventListener('error',e=>{if(e.target.matches('.cover-image')){e.target.closest('.cover').classList.remove('has-image');e.target.remove();}},true);
 $('#film-files').addEventListener('change',e=>{selectedFiles=[...e.target.files].sort(naturalSort);renderOrder();});
 $('#import-form').addEventListener('submit',importFilm);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&activeFilm)acquireWakeLock();});
 document.addEventListener('keydown',e=>{
   if($('#info-dialog').open||$('#import-dialog').open)return;
-  if(activeFilm){if(['ArrowRight',' ','ArrowLeft','Home','End'].includes(e.key)){e.preventDefault();showFrame(e.key==='Home'?0:e.key==='End'?activeFilm.count-1:activeIndex+(e.key==='ArrowLeft'?-1:1));}return;}
+  if(activeFilm){if(e.key===' '&&e.target.matches('button'))return;if(['ArrowRight',' ','ArrowLeft','Home','End'].includes(e.key)){e.preventDefault();showFrame(e.key==='Home'?0:e.key==='End'?activeFilm.count-1:activeIndex+(e.key==='ArrowLeft'?-1:1));}return;}
   if(e.key==='/'&&!e.target.matches('input,textarea')){e.preventDefault();$('#search').focus();}
 });
 for(const dialog of $$('.modal'))dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
 if(['catalog','local','favorites'].includes(location.hash.slice(1)))tab=location.hash.slice(1);
 async function init(){
-  const results=await Promise.allSettled([fetch('catalog.json').then(r=>{if(!r.ok)throw new Error('catalog');return r.json();}),openDatabase()]);
+  const results=await Promise.allSettled([fetch('catalog.json?v=20261102-1').then(r=>{if(!r.ok)throw new Error('catalog');return r.json();}),openDatabase()]);
   if(results[0].status==='fulfilled')sourceFilms=results[0].value.films.filter(f=>f.kind==='source'&&/^https:\/\/www\.hobobo\.ru\/diafilmy\//.test(f.url));
   if(results[1].status==='fulfilled'){db=results[1].value;try{await refreshLocal();}catch{db=null;}}
   renderGrid();if(results[0].status==='rejected'){$('#source-note p').textContent='Каталог не загрузился. Проверьте интернет и обновите страницу. Ваша коллекция доступна.';}

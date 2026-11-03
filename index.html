@@ -10,8 +10,8 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=20261025-3">
-  <link rel="stylesheet" href="viewer.css?v=20261025-3">
+  <link rel="stylesheet" href="style.css?v=20261102-1">
+  <link rel="stylesheet" href="viewer.css?v=20261102-1">
   <title>Луч — домашние диафильмы</title>
 </head>
 <body>
@@ -72,10 +72,13 @@
       <button id="close-viewer" class="viewer-button" aria-label="Закрыть просмотр"><svg><use href="#i-close"/></svg></button>
       <span id="viewer-title"></span>
       <button class="viewer-button airplay-trigger" aria-label="Как вывести на Apple TV"><svg><use href="#i-screen"/></svg></button>
-      <button id="fullscreen" class="viewer-button" aria-label="На весь экран"><svg><use href="#i-expand"/></svg></button>
+      <button id="fullscreen" class="viewer-button" aria-label="На весь экран" aria-pressed="false"><svg><use href="#i-expand"/></svg></button>
     </header>
     <div class="viewer-stage" id="viewer-stage">
       <img id="frame-image" alt="" referrerpolicy="no-referrer" draggable="false">
+      <button id="tap-prev" class="stage-tap stage-tap-prev" data-stage-action="prev" aria-label="Предыдущий кадр" disabled></button>
+      <button id="tap-center" class="stage-tap stage-tap-center" data-stage-action="center" aria-label="Скрыть управление и увеличить кадр"></button>
+      <button id="tap-next" class="stage-tap stage-tap-next" data-stage-action="next" aria-label="Следующий кадр" disabled></button>
       <div id="frame-loading" class="frame-loading" hidden>Открываем кадр…</div>
       <p id="frame-error" class="frame-error" hidden>Не удалось открыть кадр.</p>
       <button id="retry-frame" class="button secondary" hidden>Повторить загрузку</button>
@@ -90,6 +93,6 @@
     </div>
   </dialog>
   <div id="toast" class="toast" role="status"></div>
-  <script type="module" src="app.js?v=20261025-3"></script>
+  <script type="module" src="app.js?v=20261102-1"></script>
 </body>
 </html>

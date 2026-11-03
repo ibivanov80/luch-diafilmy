@@ -12,3 +12,9 @@
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.sort-control select{font:inherit;font-size:11px;background:transparent;border:1px solid #d9ddce;border-radius:5px;min-height:40px;color:#636d58;padding:8px 7px;max-width:165px}.rating{font-weight:600;color:#8d603d;white-space:nowrap}.cover-play{position:absolute;right:15px;bottom:16px;font-size:10px;opacity:.55}.cover-title{right:31px}.viewer-source{display:block;width:max-content;color:#c6c8b3;text-decoration:none;font-size:9px;padding:9px 0 0}#retry-frame{position:absolute;left:50%;top:calc(50% + 75px);transform:translateX(-50%);background:#243022;color:#eee8d9;border-color:#78806c;z-index:2}.frame-error{pointer-events:none}.source-note>span{color:#a87742}
 @media(max-width:570px){.sort-control select{font-size:9px;padding:8px 3px;max-width:132px}.library-toolbar{gap:5px}.filter{font-size:9px;padding:10px 7px}.card-meta{gap:4px}.card-meta .rating{font-size:9px}.hero-copy .button{font-size:10px}.button-tail{margin-left:5px}}
+
+/* Real film frames make the catalogue recognizable before children can read. */
+.cover.has-image{aspect-ratio:4/3;background:#20271f}
+.cover.has-image .cover-image{display:block;width:100%;height:100%;object-fit:contain}
+.cover.has-image:after,.cover.has-image .cover-number,.cover.has-image .cover-shape,.cover.has-image .cover-title{display:none}
+.cover.has-image .cover-play{display:grid;place-items:center;width:30px;height:30px;right:10px;bottom:10px;border-radius:50%;background:#182116bd;color:#fff9e9;opacity:1;font-size:10px}
