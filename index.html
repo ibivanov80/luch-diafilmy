@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#f5f2e9">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="description" content="Смотрите любимые диафильмы в удобном просмотрщике: рейтинг, избранное, полный экран и продолжение с последнего кадра.">
+  <meta name="description" content="Выбирайте диафильмы вместе с детьми по темам и подборкам. Сохраняйте любимые истории и продолжайте с последнего кадра.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=20261102-1">
+  <link rel="stylesheet" href="style.css?v=20261104-shelves">
   <link rel="stylesheet" href="viewer.css?v=20261102-1">
   <title>Луч — домашние диафильмы</title>
 </head>
@@ -42,7 +42,7 @@
     <main id="main">
       <header class="topbar"><span class="eyebrow">ВАШ МАЛЕНЬКИЙ КИНОТЕАТР</span><div class="top-actions"><button class="text-button airplay-trigger"><svg><use href="#i-screen"/></svg><span>На телевизор</span></button><button class="button import-trigger" aria-label="Добавить диафильм"><svg><use href="#i-plus"/></svg><span>Добавить диафильм</span></button></div></header>
       <section class="hero" id="hero">
-        <div class="hero-copy"><span class="pill"><i></i> СВЕТ ПОГАС. ИСТОРИЯ НАЧИНАЕТСЯ.</span><h1>Сказки, которые<br>светятся изнутри.</h1><p>Те самые диафильмы — для новых вечеров вместе.<br class="desktop-break"> Выберите историю и устройтесь поудобнее.</p><button class="button dark" id="demo-start"><span class="play-symbol">▶</span> Смотреть «Три поросёнка» <span class="button-tail">↗</span></button><span class="hero-hint">Истории для просмотра в вашем темпе</span></div>
+        <div class="hero-copy"><span class="pill"><i></i> СВЕТ ПОГАС. ИСТОРИЯ НАЧИНАЕТСЯ.</span><h1>Сказки, которые<br>светятся изнутри.</h1><p>Те самые диафильмы — для новых вечеров вместе.<br class="desktop-break"> Выберите историю и устройтесь поудобнее.</p><div class="hero-actions"><button class="button dark" id="demo-start"><span class="play-symbol">▶</span> Смотреть «Три поросёнка» <span class="button-tail">↗</span></button><a class="button secondary" href="#library-title">Выбрать по теме ↓</a></div><span class="hero-hint">Истории для просмотра в вашем темпе</span></div>
         <div class="hero-art" aria-hidden="true">
           <svg viewBox="0 0 560 450"><defs><linearGradient id="beam"><stop stop-color="#edb34b" stop-opacity=".5"/><stop offset="1" stop-color="#edb34b" stop-opacity=".02"/></linearGradient><radialGradient id="glow"><stop stop-color="#f6d99b"/><stop offset="1" stop-color="#e8cd98" stop-opacity="0"/></radialGradient><pattern id="grain" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="3" r=".5" fill="#5a4e36" opacity=".15"/></pattern></defs>
           <circle cx="333" cy="210" r="200" fill="url(#glow)"/><path d="M219 231 540 69v321L219 262Z" fill="url(#beam)"/>
@@ -56,8 +56,23 @@
         </div>
       </section>
       <section id="continue-section" class="continue-section" hidden><button id="continue-film"><span class="continue-icon">↗</span><span><small>ПРОДОЛЖИТЬ ВЕЧЕР</small><strong id="continue-title"></strong></span><span id="continue-frame"></span><svg><use href="#i-arrow"/></svg></button></section>
-      <section class="library" aria-labelledby="library-title"><div class="section-heading"><div><span class="eyebrow" id="library-kicker">ИСТОРИИ НА ПОЛКЕ</span><h2 id="library-title">Все диафильмы <span id="result-count"></span></h2></div><label class="search"><svg><use href="#i-search"/></svg><input type="search" id="search" placeholder="Найти свою историю" autocomplete="off" aria-label="Поиск по названию"><kbd>/</kbd></label></div>
+      <section class="library" aria-labelledby="library-title"><div class="section-heading"><div><span class="eyebrow" id="library-kicker">ИСТОРИИ НА ПОЛКЕ</span><h2 id="library-title">Все диафильмы <span id="result-count"></span></h2></div><label class="search"><svg><use href="#i-search"/></svg><input type="search" id="search" placeholder="Название, герой или тема" autocomplete="off" aria-label="Поиск по названию, героям и темам"><kbd>/</kbd></label></div>
+      <section class="browse-panel" id="browse-panel" aria-labelledby="browse-title" hidden>
+        <h3 id="browse-title">Что посмотрим?</h3>
+        <div class="shelf-options" id="shelf-options" role="group" aria-label="Тематические полки"></div>
+        <div class="collection-row">
+          <span class="eyebrow" id="collection-label">ПОДБОРКИ</span>
+          <div class="collection-options" id="collection-options" role="group" aria-labelledby="collection-label"></div>
+        </div>
+        <p class="collection-intro" id="collection-intro" hidden></p>
+      </section>
       <div class="library-toolbar"><div class="filters" aria-label="Источник"><button class="filter active" data-filter="all">Все истории</button><button class="filter" data-filter="playable">Мои кадры</button><button class="filter" data-filter="source">Диафильмы</button></div><label class="sort-control"><span class="sr-only">Сортировка</span><select id="sort" aria-label="Сортировка диафильмов"><option value="popular">По популярности</option><option value="title">По алфавиту</option></select></label></div>
+      <div class="catalog-refinements" id="catalog-refinements" role="group" aria-label="Фильтры диафильмов" hidden>
+        <label class="unseen-toggle"><input type="checkbox" id="unseen"> Ещё не смотрели</label>
+        <label><span class="sr-only">Объём</span><select id="length"><option value="">Любой объём</option><option value="short">До 34 кадров</option><option value="medium">35–46 кадров</option><option value="long">От 47 кадров</option></select></label>
+        <label><span class="sr-only">Настроение</span><select id="mood"><option value="">Любое настроение</option><option value="calm">Спокойное</option><option value="funny">Смешное</option><option value="exciting">Захватывающее</option><option value="touching">Трогательное</option></select></label>
+        <label><span class="sr-only">Сложность</span><select id="difficulty"><option value="">Любая сложность</option><option value="easy">Простой сюжет</option><option value="medium">Посложнее</option><option value="older">Для старших</option></select></label>
+      </div>
       <div class="source-note" id="source-note"><span>↗</span><p>Выберите диафильм — кадры откроются здесь. Рейтинг · 25 октября 2026.</p><button class="help-trigger" aria-label="Как смотреть диафильмы"><svg><use href="#i-help"/></svg></button></div>
       <div class="film-grid" id="film-grid" aria-live="polite"></div><p class="loading" id="loading">Собираем истории на полке…</p><button id="show-more" class="button secondary" hidden>Ещё истории <span>↓</span></button>
       </section>
@@ -93,6 +108,6 @@
     </div>
   </dialog>
   <div id="toast" class="toast" role="status"></div>
-  <script type="module" src="app.js?v=20261103-search"></script>
+  <script type="module" src="app.js?v=20261104-shelves"></script>
 </body>
 </html>
