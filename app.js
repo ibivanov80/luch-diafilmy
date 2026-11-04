@@ -14,6 +14,7 @@ let favorites = new Set(Array.isArray(savedFavorites)?savedFavorites:[]);
 let progress = read('luch-progress-v1',{});
 if(!progress || typeof progress!=='object' || Array.isArray(progress)) progress={};
 let sourceFilms=[], localFilms=[], tab='catalog', filter='all', limit=24, db;
+let catalogPending = true;
 let shelves=[], collections=[], shelf='', collection='';
 const visibleSeries = new Map();
 const moodLabels = {calm:'Спокойное', funny:'Смешное', exciting:'Захватывающее', touching:'Трогательное'};
@@ -182,6 +183,13 @@ function showSeries(title) {
 
 function renderGrid(){
   syncNav();renderContinue();syncBrowse();
+  const waitingForCatalog = tab === 'catalog' && catalogPending;
+  $('#loading').hidden = !waitingForCatalog;
+  if (waitingForCatalog) {
+    $('#film-grid').replaceChildren();
+    $('#show-more').hidden = true;
+    return;
+  }
   const query=normalize($('#search').value);
   const inCatalog = tab === 'catalog';
   const selection = inCatalog ? collections.find(item => item.id === collection) : undefined;
@@ -206,7 +214,6 @@ function renderGrid(){
   films.sort((a,b)=>{if(sortMode==='popular'&&tab!=='local'){const diff=(b.rating??-1)-(a.rating??-1);if(diff)return diff;}return a.title.localeCompare(b.title,'ru',{numeric:true});});
   const cards = groupSeries(films);
   $('#result-count').textContent=films.length;
-  $('#loading').hidden=true;
   $('#show-more').hidden=cards.length<=limit;
   const visible=cards.slice(0,limit);
   if(!visible.length){
@@ -422,16 +429,35 @@ document.addEventListener('keydown',e=>{
 });
 for(const dialog of $$('.modal'))dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
 if(['catalog','local','favorites'].includes(location.hash.slice(1)))tab=location.hash.slice(1);
-async function init(){
-  const results=await Promise.allSettled([fetch('catalog.json?v=20261104-shelves').then(r=>{if(!r.ok)throw new Error('catalog');return r.json();}),openDatabase()]);
-  if(results[0].status==='fulfilled'){
-    const catalog=results[0].value;
-    sourceFilms=catalog.films.filter(f=>f.kind==='source'&&/^https:\/\/www\.hobobo\.ru\/diafilmy\//.test(f.url));
-    shelves=catalog.shelves||[];
-    collections=catalog.collections||[];
+async function loadCatalog() {
+  const request = new AbortController();
+  const timeout = setTimeout(() => request.abort(), 12000);
+  try {
+    const response = await fetch('catalog.json?v=20261104-shelves', {signal:request.signal});
+    if (!response.ok) throw new Error('catalog');
+    const catalog = await response.json();
+    sourceFilms = catalog.films.filter(f => f.kind === 'source' && /^https:\/\/www\.hobobo\.ru\/diafilmy\//.test(f.url));
+    shelves = catalog.shelves || [];
+    collections = catalog.collections || [];
     initializeBrowse();
+  } catch {
+    $('#source-note p').textContent = 'Каталог не загрузился. Проверьте подключение и обновите страницу.';
+  } finally {
+    clearTimeout(timeout);
+    catalogPending = false;
+    renderGrid();
   }
-  if(results[1].status==='fulfilled'){db=results[1].value;try{await refreshLocal();}catch{db=null;}}
-  renderGrid();if(results[0].status==='rejected'){$('#source-note p').textContent='Каталог не загрузился. Проверьте интернет и обновите страницу. Ваша коллекция доступна.';}
 }
-init();
+
+async function loadPersonalCollection() {
+  try {
+    db = await openDatabase();
+    await refreshLocal();
+  } catch {
+    db = null;
+  }
+  if (!catalogPending || tab === 'local') renderGrid();
+}
+
+loadCatalog();
+loadPersonalCollection();
