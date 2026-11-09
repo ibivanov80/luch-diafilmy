@@ -1,20 +1,18 @@
 """Save small catalogue previews from an early illustrated frame from each film."""
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from html.parser import HTMLParser
 from io import BytesIO
 from pathlib import Path
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import urljoin
 import json
 import subprocess
 import sys
 import time
-import tempfile
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / 'catalog.json'
 COVERS = ROOT / 'covers'
-CACHE = Path(tempfile.gettempdir()) / 'luch-cover-posts.json'
+FRAME_INDEX = ROOT / 'frames.json'
 
 
 def fetch(url):
@@ -27,52 +25,19 @@ def fetch(url):
             time.sleep(attempt + 1)
 
 
-class Gallery(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.depth = 0
-        self.gallery = 0
-        self.urls = []
-
-    def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
-        if tag == 'div':
-            self.depth += 1
-            if 'gallery-top' in attrs.get('class', '').split():
-                self.gallery = self.depth
-        if tag == 'img' and self.gallery:
-            url = urljoin('https://www.hobobo.ru/', attrs.get('data-src') or attrs.get('src') or '')
-            parts = urlparse(url)
-            if parts.hostname in ('www.hobobo.ru', 'hobobo.ru') and parts.path.startswith('/assets/uploads/'):
-                self.urls.append(url.replace('http://', 'https://', 1))
-
-    def handle_endtag(self, tag):
-        if tag == 'div':
-            if self.depth == self.gallery:
-                self.gallery = 0
-            self.depth -= 1
-
-
 def main():
     data = json.loads(CATALOG.read_text())
     films = data['films']
-    posts = json.loads(CACHE.read_text()) if CACHE.exists() else {}
-    missing = [film['id'].split('-')[1] for film in films if film['id'] not in posts]
-    for start in range(0, len(missing), 80):
-        ids = missing[start:start + 80]
-        query = urlencode({'include': ','.join(ids), 'per_page': 100, '_fields': 'id,content'})
-        batch = json.loads(fetch('https://www.hobobo.ru/wp-json/wp/v2/posts?' + query))
-        posts.update({'hobobo-' + str(post['id']): post['content']['rendered'] for post in batch})
-        CACHE.write_text(json.dumps(posts))
-        print(f'Gallery metadata: {len(posts)}/{len(films)}', flush=True)
+    galleries = json.loads(FRAME_INDEX.read_text())
     COVERS.mkdir(exist_ok=True)
 
     def cover(film):
         dest = COVERS / (film['id'] + '.webp')
         if not dest.exists() or '--refresh' in sys.argv:
-            gallery = Gallery()
-            gallery.feed(posts.get(film['id'], ''))
-            urls = list(dict.fromkeys(gallery.urls))
+            gallery = galleries[film['id']]
+            start = gallery.get('start', 1)
+            names = gallery.get('files') or [f'{i}.jpg' for i in range(start, start + gallery['count'])]
+            urls = [urljoin(gallery['base'], name) for name in names]
             if not urls:
                 raise ValueError('No gallery: ' + film['id'])
             # Skip title/credit and calibration frames so children can see the characters.

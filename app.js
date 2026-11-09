@@ -1,4 +1,4 @@
-import { fetchFrameUrls } from './source.js';
+import { fetchFrameUrls } from './source.js?v=20261109-frames';
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -274,7 +274,7 @@ async function openFilm(id){
   }catch(error){
     if(sourceRequest!==request||!activeFilm)return;
     $('#frame-loading').hidden=true;
-    $('#frame-error').textContent=f.kind==='source'?'Не удалось загрузить диафильм. Проверьте интернет и нажмите «Повторить».':'Не удалось открыть сохранённые кадры. Добавьте диафильм заново.';
+    $('#frame-error').textContent=f.kind==='source'?'Не удалось загрузить список кадров. Нажмите «Повторить загрузку».':'Не удалось открыть сохранённые кадры. Добавьте диафильм заново.';
     $('#frame-error').hidden=false;$('#retry-frame').hidden=false;
   }finally{clearTimeout(timeout);}
 }
@@ -287,7 +287,7 @@ async function showFrame(index){
   $('#frame-range').value=activeIndex+1;$('#prev-frame').disabled=activeIndex===0;$('#next-frame').disabled=activeIndex===activeFilm.count-1;$('#end-message').hidden=activeIndex!==activeFilm.count-1;
   $('#tap-prev').disabled=activeIndex===0;$('#tap-next').disabled=activeIndex===activeFilm.count-1;
   savePosition();
-  try{await img.decode();}catch{if(generation===renderGeneration){$('#frame-error').textContent='Кадр не загрузился. Проверьте интернет и попробуйте ещё раз.';$('#frame-error').hidden=false;$('#retry-frame').hidden=false;}}
+  try{await img.decode();}catch{if(generation===renderGeneration){$('#frame-error').textContent='Кадр не загрузился. Нажмите «Повторить загрузку».';$('#frame-error').hidden=false;$('#retry-frame').hidden=false;}}
   if(generation===renderGeneration)$('#frame-loading').hidden=true;
   if(frameUrls[activeIndex+1]){const prefetch=new Image();prefetch.referrerPolicy='no-referrer';prefetch.src=frameUrls[activeIndex+1];}
 }
@@ -433,7 +433,7 @@ async function loadCatalog() {
   const request = new AbortController();
   const timeout = setTimeout(() => request.abort(), 12000);
   try {
-    const response = await fetch('catalog.json?v=20261104-shelves', {signal:request.signal});
+    const response = await fetch('catalog.json?v=20261109-frames', {signal:request.signal});
     if (!response.ok) throw new Error('catalog');
     const catalog = await response.json();
     sourceFilms = catalog.films.filter(f => f.kind === 'source' && /^https:\/\/www\.hobobo\.ru\/diafilmy\//.test(f.url));
