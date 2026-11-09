@@ -1,10 +1,9 @@
-// Keep the ordered frame lists on GitHub Pages. Only the images themselves
-// are requested from their archives while a film is playing.
+// The index is served by Pages. The public Google Drive images load as needed.
 let frameIndex;
 
 export async function fetchFrameUrls(film, signal) {
   if (!frameIndex) {
-    const response = await fetch(new URL('./frames.json', import.meta.url), {signal});
+    const response = await fetch(new URL('./frames.json?v=20261109-drive', import.meta.url), {signal});
     if (!response.ok) throw new Error('Не удалось загрузить список кадров.');
     frameIndex = await response.json();
   }
